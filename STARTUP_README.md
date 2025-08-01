@@ -4,6 +4,18 @@ This directory contains comprehensive scripts to start and stop all components o
 
 ## Quick Start
 
+⚠️ **First Time Setup:** Before starting, copy the environment files:
+
+```bash
+# For Linux/macOS/WSL
+cp backend/.env.example backend/.env
+cp ai/.env.example ai/.env
+
+# For Windows
+copy backend\.env.example backend\.env
+copy ai\.env.example ai\.env
+```
+
 ### For Linux/macOS/WSL:
 ```bash
 # Start everything
@@ -110,7 +122,49 @@ Once started, you can access:
 - **Python** (v3.8+) - For AI service
 - **Git Bash** (Windows) - For running shell scripts on Windows
 
-### System Requirements:
+### Environment Configuration
+
+Before starting the system, you need to set up environment files by copying the example files:
+
+**For Linux/macOS/WSL:**
+
+```bash
+# Copy environment files
+cp backend/.env.example backend/.env
+cp ai/.env.example ai/.env
+```
+
+**For Windows (Command Prompt):**
+
+```cmd
+# Copy environment files
+copy backend\.env.example backend\.env
+copy ai\.env.example ai\.env
+```
+
+**For Windows (PowerShell):**
+
+```powershell
+# Copy environment files
+Copy-Item backend\.env.example backend\.env
+Copy-Item ai\.env.example ai\.env
+```
+
+**Configuration Notes:**
+
+- **Backend (.env)**: Contains database connections, API keys, and service URLs
+- **AI Service (.env)**: Contains AI model settings, Ollama configuration, and processing parameters
+
+**For Development:** The default values in the example files work out-of-the-box with the Docker services.
+
+**For Production:** You MUST change the following values:
+
+- All passwords and secret keys
+- API keys for external services (OpenAI, YouTube, etc.)
+- Database credentials
+- OAuth client IDs and secrets
+
+### System Requirements
 - **RAM:** 8GB minimum, 16GB recommended
 - **Storage:** 5GB free space
 - **Ports:** Ensure ports 3000, 6379, 7474, 7687, 8000, 8001, 8080, 9000, 9001, 9200 are available

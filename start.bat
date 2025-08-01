@@ -22,7 +22,7 @@ exit /b %errorlevel%
 set "port=%1"
 set "service_name=%2"
 set "attempts=0"
-set "max_attempts=30"
+set "max_attempts=60"
 
 echo [INFO] Waiting for %service_name% to be ready...
 
@@ -35,7 +35,8 @@ if %errorlevel% equ 0 (
 
 set /a attempts+=1
 if %attempts% geq %max_attempts% (
-    echo [ERROR] %service_name% failed to start within timeout
+    echo [ERROR] %service_name% failed to start within timeout ^(2 minutes^)
+    echo [INFO] Check logs\ directory for service logs
     exit /b 1
 )
 

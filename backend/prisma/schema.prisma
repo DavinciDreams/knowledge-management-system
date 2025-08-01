@@ -1,0 +1,678 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User management
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  username  String   @unique
+  firstName String?
+  lastName  String?
+  avatar    String?
+  bio       String?
+  website   String?
+  location  String?
+  company   String?
+  jobTitle  String?
+  settings  Json?    // Authentication
+  password     String? // Password field, nullable for OAuth users
+  passwordHash String? // Hashed password, alternative to password
+  emailVerified Boolean @default(false)
+  emailVerificationToken String?
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+  
+  // OAuth
+  oauthProvider String?
+  oauthId       String?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLogin DateTime?  // Relations
+  notebooks       Notebook[] @relation("UserNotebooks")
+  ownedNotebooks  Notebook[] @relation("OwnerNotebooks")
+  canvases        Canvas[]
+  pages           Page[] @relation("UserPages")
+  authoredPages   Page[] @relation("AuthorPages")
+  comments        Comment[]
+  collaborations  Collaboration[]
+  notebookCollaborators NotebookCollaborator[] @relation("NotebookCollaborators")
+  sessions        Session[]
+  apiKeys         ApiKey[]
+  voiceNotes      VoiceNote[]
+  entities        Entity[]
+  activities      Activity[]
+  userActivities  UserActivity[]
+  knowledgeNodes  KnowledgeNode[]
+  knowledgeRelationships KnowledgeRelationship[]
+  uploadSessions  UploadSession[]
+  uploadedFiles   UploadedFile[]
+  
+  @@map("users")
+}
+
+// Session management
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  userAgent String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+// API Keys for external integrations
+model ApiKey {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  key         String   @unique
+  permissions Json
+  lastUsed    DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("api_keys")
+}
+
+// Knowledge organization
+model Notebook {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  color       String   @default("#6366f1")
+  icon        String?
+  settings    Json?
+  visibility  Visibility @default(PRIVATE)
+  isPublic    Boolean  @default(false)
+    // Ownership
+  ownerId String
+  owner   User   @relation("OwnerNotebooks", fields: [ownerId], references: [id], onDelete: Cascade)
+  userId  String  // Alias for ownerId for compatibility
+  user    User    @relation("UserNotebooks", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+    // Relations
+  pages           Page[]
+  canvases        Canvas[]
+  collaborations  Collaboration[]
+  collaborators   NotebookCollaborator[]
+  tags            Tag[]
+  voiceNotes      VoiceNote[]
+  uploadSessions  UploadSession[]
+  userActivities  UserActivity[]
+  
+  @@map("notebooks")
+}
+
+// Pages with rich content
+model Page {
+  id      String @id @default(cuid())
+  title   String
+  content Json   // Rich text content as JSON
+  summary String?
+    // Metadata
+  type        PageType @default(NOTE)
+  contentType String?  // Content type for compatibility
+  status      String?  // Page status (DRAFT, PUBLISHED, etc.)
+  visibility  Visibility @default(PRIVATE)
+  templateId  String?
+  version     Int @default(1)
+  wordCount   Int @default(0)
+  readTime    Int @default(0)
+  position    Int @default(0)
+  settings    Json?
+  
+  // Organization
+  notebookId String?
+  notebook   Notebook? @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  parentId   String?
+  parent     Page?     @relation("PageHierarchy", fields: [parentId], references: [id])
+  children   Page[]    @relation("PageHierarchy")    // Ownership
+  authorId String
+  author   User   @relation("AuthorPages", fields: [authorId], references: [id], onDelete: Cascade)
+  userId   String  // Alias for authorId for compatibility
+  user     User    @relation("UserPages", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  publishedAt DateTime?
+  
+  // Relations
+  comments      Comment[]
+  collaborations Collaboration[]
+  tags          Tag[]
+  attachments   Attachment[]
+  voiceNotes    VoiceNote[]
+  entities      Entity[]
+  activities    Activity[]
+  revisions     PageRevision[]
+  canvases      Canvas[]
+  
+  @@map("pages")
+}
+
+// Page version history
+model PageRevision {
+  id        String   @id @default(cuid())
+  pageId    String
+  content   Json
+  version   Int
+  summary   String?
+  createdAt DateTime @default(now())
+  createdBy String
+  
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  
+  @@unique([pageId, version])
+  @@map("page_revisions")
+}
+
+// Canvas for infinite drawing/diagramming
+model Canvas {
+  id     String @id @default(cuid())
+  title  String
+  data   Json   // Canvas data (objects, connections, etc.)
+  
+  // Canvas properties
+  width           Float @default(1920)
+  height          Float @default(1080)
+  backgroundColor String? @default("#ffffff")
+  zoom            Float @default(1.0)
+  offsetX         Float @default(0)
+  offsetY         Float @default(0)
+  
+  // Metadata
+  type       CanvasType @default(WHITEBOARD)
+  visibility Visibility @default(PRIVATE)
+  templateId String?
+  
+  // Organization
+  notebookId String?
+  notebook   Notebook? @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  pageId     String?   @unique // Make pageId unique
+  page       Page?     @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  
+  // Ownership
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  collaborations Collaboration[]
+  tags          Tag[]
+  activities    Activity[]
+  elements      CanvasElement[]
+    @@map("canvases")
+}
+
+// Canvas elements for drawing/diagramming
+model CanvasElement {
+  id       String @id @default(cuid())
+  type     String // e.g., "rectangle", "circle", "text", "line"
+  data     Json   // Element-specific data (position, size, style, etc.)
+  properties Json? // Additional element properties
+  
+  // Position and layering
+  x        Float
+  y        Float
+  width    Float
+  height   Float
+  zIndex   Int    @default(0)
+  
+  // Editing tracking
+  updatedBy String?
+  
+  // Canvas relationship
+  canvasId String
+  canvas   Canvas @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("canvas_elements")
+}
+
+// Knowledge graph nodes
+model KnowledgeNode {
+  id          String  @id @default(cuid())
+  name        String
+  label       String  // Alias for name for compatibility
+  type        String
+  description String?
+  color       String?
+  size        Float   @default(1.0)
+  metadata    Json?
+  properties  Json?
+  position    Json?   // For graph visualization
+  
+  // Ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Graph relations
+  sourceRelations KnowledgeRelationship[] @relation("SourceNode")
+  targetRelations KnowledgeRelationship[] @relation("TargetNode")
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("knowledge_nodes")
+}
+
+// Knowledge graph relationships
+model KnowledgeRelationship {
+  id           String @id @default(cuid())
+  type         String
+  label        String?
+  weight       Float  @default(1.0)
+  bidirectional Boolean @default(false)
+  properties   Json?
+  metadata     Json?
+  
+  // Node relationships
+  fromId   String
+  fromNode KnowledgeNode @relation("SourceNode", fields: [fromId], references: [id], onDelete: Cascade)
+  toId     String
+  toNode   KnowledgeNode @relation("TargetNode", fields: [toId], references: [id], onDelete: Cascade)
+  
+  // Ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([fromId, toId, type])
+  @@map("knowledge_relationships")
+}
+
+// Notebook collaboration (separate from general collaboration)
+model NotebookCollaborator {
+  id         String @id @default(cuid())
+  role       CollaborationRole @default(VIEWER)
+  status     String @default("ACTIVE")
+  
+  // Relationships
+  userId     String
+  user       User     @relation("NotebookCollaborators", fields: [userId], references: [id], onDelete: Cascade)
+  notebookId String
+  notebook   Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, notebookId])
+  @@map("notebook_collaborators")
+}
+
+// Upload session tracking
+model UploadSession {
+  id         String @id @default(cuid())
+  status     String @default("ACTIVE")
+  totalFiles Int    @default(0)
+  totalSize  Int    @default(0) // Total size of all files
+  fileCount  Int    @default(0) // Alias for totalFiles for compatibility
+  uploadedFiles Int @default(0)
+  metadata   Json?
+  processedAt DateTime? // When processing completed
+  
+  // Relationships
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebookId String?
+  notebook   Notebook? @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  
+  // Relations
+  files      UploadedFile[]
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("upload_sessions")
+}
+
+// Individual uploaded files
+model UploadedFile {
+  id         String @id @default(cuid())
+  filename   String
+  fileName   String  // Alias for filename for compatibility
+  originalName String
+  mimeType   String
+  size       Int
+  url        String
+  fileUrl    String  // Alias for url for compatibility
+  status     String @default("UPLOADED")
+  metadata   Json?
+  pageId     String? // Link to page if converted
+  
+  // Relationships
+  sessionId  String
+  session    UploadSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("uploaded_files")
+}
+
+// Comments system
+model Comment {
+  id      String @id @default(cuid())
+  content String
+  
+  // Context
+  pageId   String?
+  page     Page?   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  position Json?   // Position on page/canvas
+  
+  // Threading
+  parentId String?
+  parent   Comment? @relation("CommentThread", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentThread")
+    // Ownership
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  // Status
+  resolved Boolean @default(false)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("comments")
+}
+
+// Real-time collaboration
+model Collaboration {
+  id        String @id @default(cuid())
+  role      CollaborationRole @default(VIEWER)
+  status    String @default("ACTIVE")
+  message   String? // Optional invitation message
+  invitedBy String? // ID of user who sent the invitation
+  
+  // Permissions
+  canEdit   Boolean @default(false)
+  canShare  Boolean @default(false)
+  canDelete Boolean @default(false)
+  
+  // Context
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notebookId String?
+  notebook   Notebook? @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  pageId     String?
+  page       Page?     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  canvasId   String?
+  canvas     Canvas?   @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastAccessed DateTime?
+  
+  @@unique([userId, notebookId])
+  @@unique([userId, pageId])
+  @@unique([userId, canvasId])
+  @@unique([notebookId, userId], name: "notebookId_userId")
+  @@map("collaborations")
+}
+
+// Tagging system
+model Tag {
+  id          String @id @default(cuid())
+  name        String
+  color       String @default("#6b7280")
+  description String?
+  
+  // Relations
+  notebooks Notebook[]
+  pages     Page[]
+  canvases  Canvas[]
+  
+  @@unique([name])
+  @@map("tags")
+}
+
+// File attachments
+model Attachment {
+  id       String @id @default(cuid())
+  filename String
+  mimeType String
+  size     Int
+  url      String
+  
+  // Metadata
+  uploadedBy String
+  pageId     String?
+  page       Page?   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  
+  @@map("attachments")
+}
+
+// Voice notes and recordings
+model VoiceNote {
+  id           String @id @default(cuid())
+  title        String?
+  audioUrl     String
+  transcription String?
+  summary      String?
+  keywords     String[]
+  duration     Int    // in seconds
+  size         Int    // in bytes
+  isPublic     Boolean @default(false)
+  status       String @default("UPLOADED")
+  
+  // Context
+  pageId     String?
+  page       Page?     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  notebookId String?
+  notebook   Notebook? @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  
+  // Ownership
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Processing status
+  transcriptionStatus TranscriptionStatus @default(PENDING)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("voice_notes")
+}
+
+// Entity extraction and knowledge graph
+model Entity {
+  id          String     @id @default(cuid())
+  name        String
+  type        EntityType
+  description String?
+  metadata    Json?
+  confidence  Float      @default(1.0)
+  
+  // Context
+  pageId String?
+  page   Page?  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Graph relations
+  sourceRelations EntityRelation[] @relation("SourceEntity")
+  targetRelations EntityRelation[] @relation("TargetEntity")
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("entities")
+}
+
+// Entity relationships for knowledge graph
+model EntityRelation {
+  id           String     @id @default(cuid())
+  relationship String     // e.g., "works_at", "located_in", "relates_to"
+  strength     Float      @default(1.0)
+  metadata     Json?
+  
+  // Entities
+  sourceId String
+  source   Entity @relation("SourceEntity", fields: [sourceId], references: [id], onDelete: Cascade)
+  targetId String
+  target   Entity @relation("TargetEntity", fields: [targetId], references: [id], onDelete: Cascade)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  
+  @@unique([sourceId, targetId, relationship])
+  @@map("entity_relations")
+}
+
+// Activity tracking
+model Activity {
+  id         String       @id @default(cuid())
+  type       ActivityType
+  action     String
+  entityType String?
+  entityId   String?      // ID of the entity being acted upon
+  details    Json?
+  
+  // Context
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pageId   String?
+  page     Page?    @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  canvasId String?
+  canvas   Canvas?  @relation(fields: [canvasId], references: [id], onDelete: SetNull)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  
+  @@map("activities")
+}
+
+// User activity tracking (separate model for compatibility)
+model UserActivity {
+  id         String       @id @default(cuid())
+  type       ActivityType
+  action     String
+  description String?     // Human-readable description
+  entityType String?
+  details    Json?
+  
+  // Context
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pageId     String?
+  canvasId   String?
+  notebookId String?
+  notebook   Notebook? @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  
+  @@map("user_activities")
+}
+
+// Enums
+enum Visibility {
+  PRIVATE
+  SHARED
+  PUBLIC
+}
+
+enum PageType {
+  NOTE
+  DOCUMENT
+  TEMPLATE
+  MEETING_NOTES
+  JOURNAL
+  TASK_LIST
+  KNOWLEDGE_BASE
+}
+
+enum CanvasType {
+  WHITEBOARD
+  FLOWCHART
+  MINDMAP
+  WIREFRAME
+  DIAGRAM
+}
+
+enum CollaborationRole {
+  OWNER
+  EDITOR
+  COMMENTER
+  VIEWER
+  ADMIN
+}
+
+enum EntityType {
+  PERSON
+  ORGANIZATION
+  LOCATION
+  EVENT
+  CONCEPT
+  DOCUMENT
+  PROJECT
+  TASK
+  MEETING
+  DATE
+  TIME
+}
+
+enum ActivityType {
+  CREATE
+  UPDATE
+  DELETE
+  SHARE
+  COMMENT
+  COLLABORATE
+  EXPORT
+  IMPORT
+  FILE_IMPORTED
+  URL_IMPORTED
+}
+
+enum TranscriptionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}

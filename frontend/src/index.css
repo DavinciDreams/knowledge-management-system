@@ -1,0 +1,201 @@
+/* Tailwind base, components, and utilities would be injected here by PostCSS with Tailwind plugin */
+
+/* Custom CSS for global styles */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-secondary-50 text-secondary-900 font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary-100;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-secondary-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-secondary-400;
+  }
+}
+
+@layer components {
+  /* Button styles */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+  }
+
+  .btn-secondary {
+    @apply btn bg-secondary-200 text-secondary-800 hover:bg-secondary-300 focus:ring-secondary-400;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-secondary-600 hover:bg-secondary-100 focus:ring-secondary-300;
+  }
+
+  /* Input styles */
+  .input {
+    @apply w-full px-3 py-2 border border-secondary-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors;
+  }
+
+  /* Card styles */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-secondary-200;
+  }
+
+  .card-hover {
+    @apply card hover:shadow-md transition-shadow duration-200;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    @apply animate-spin rounded-full border-2 border-secondary-300 border-t-primary-600;
+  }
+
+  /* Canvas specific styles */
+  .canvas-container {
+    @apply relative w-full h-full overflow-hidden bg-white;
+    touch-action: none; /* Prevent default touch behaviors for pen input */
+  }
+
+  .canvas-toolbar {
+    @apply absolute top-4 left-4 z-10 bg-white rounded-lg shadow-lg border border-secondary-200 p-2 flex gap-2;
+  }
+
+  /* Voice interaction styles */
+  .voice-indicator {
+    @apply fixed bottom-4 right-4 z-50;
+  }
+
+  .voice-active {
+    @apply animate-pulse-slow;
+  }
+
+  /* Knowledge graph styles */
+  .graph-container {
+    @apply w-full h-full relative overflow-hidden bg-secondary-50;
+  }
+
+  .graph-node {
+    @apply cursor-pointer transition-all duration-200;
+  }
+
+  .graph-link {
+    @apply transition-all duration-200;
+  }
+
+  /* Editor styles */
+  .editor-container {
+    @apply w-full h-full relative bg-white;
+  }
+
+  .block-menu {
+    @apply absolute z-50 bg-white rounded-lg shadow-lg border border-secondary-200 py-2 min-w-48;
+  }
+
+  .block-menu-item {
+    @apply px-4 py-2 hover:bg-secondary-50 cursor-pointer flex items-center gap-3 text-sm;
+  }
+
+  /* Sidebar styles */
+  .sidebar {
+    @apply w-64 bg-white border-r border-secondary-200 flex-shrink-0;
+  }
+
+  .sidebar-section {
+    @apply p-4 border-b border-secondary-100;
+  }
+
+  .sidebar-item {
+    @apply px-3 py-2 rounded-lg hover:bg-secondary-50 cursor-pointer flex items-center gap-3 text-sm transition-colors;
+  }
+
+  .sidebar-item.active {
+    @apply bg-primary-50 text-primary-700;
+  }
+}
+
+@layer utilities {
+  /* Custom utilities */
+  .text-gradient {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .backdrop-blur-glass {
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  /* Accessibility improvements */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Focus styles for better accessibility */
+  .focus-visible {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .card {
+      @apply border-2 border-secondary-800;
+    }
+    
+    .btn-primary {
+      @apply border-2 border-primary-800;
+    }
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+    
+    body {
+      @apply text-black bg-white;
+    }
+  }
+}

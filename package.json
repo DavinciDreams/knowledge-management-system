@@ -1,0 +1,50 @@
+{
+  "name": "knowledge-management-system",
+  "version": "1.0.0",
+  "description": "Comprehensive self-hosted knowledge management system with AI, voice interaction, and infinite canvas",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "ai-service",
+    "browser-extension"
+  ],  "scripts": {
+    "start": "bash start.sh",
+    "stop": "bash stop.sh",
+    "start:windows": "start.bat",
+    "stop:windows": "stop.bat",
+    "start:docker": "bash start.sh docker-only",
+    "stop:docker": "bash stop.sh docker-only",
+    "start:app": "bash start.sh app-only",
+    "stop:app": "bash stop.sh app-only",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:ai\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:ai": "cd ai && python -m uvicorn main:app --reload --port 8001",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "test": "npm run test:frontend && npm run test:backend",
+    "test:frontend": "cd frontend && npm test",
+    "test:backend": "cd backend && npm test",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml up",
+    "setup": "npm install && npm run setup:services",
+    "setup:services": "cd frontend && npm install && cd ../backend && npm install && cd ../ai && pip install -r requirements.txt"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  },
+  "keywords": [
+    "knowledge-management",
+    "ai",
+    "voice-interaction",
+    "canvas",
+    "collaboration",
+    "self-hosted"
+  ],
+  "author": "Knowledge Management Team",
+  "license": "MIT"
+}
